@@ -46,6 +46,7 @@ export type BlockImportFn = (
   parentNode: ElementNode,
   children: Array<LexicalNode>,
   match: Array<string>,
+  isImport: boolean,
 ) => void;
 
 export type BlockExportFn = (
@@ -72,9 +73,9 @@ function runBlockTransformers(
   // from a line start to be a part of block-level markdown trigger.
   //
   // TODO:
-  // Any better way to prevent magic numbers? In general block level triggers are
-  // short, but list triggers might have several spaces in front to indicate nesting
-  if (anchorOffset > 20 || textContent[anchorOffset - 1] !== ' ') {
+  // Can have a quick check if caret is close enough to the beginning of the string (e.g. offset less than 10-20)
+  // since otherwise it won't be a markdown shortcut, but tables are exception
+  if (textContent[anchorOffset - 1] !== ' ') {
     return false;
   }
 
@@ -88,7 +89,7 @@ function runBlockTransformers(
       const siblings = remainderNode
         ? [remainderNode, ...nextSiblings]
         : nextSiblings;
-      replacer(parentNode, siblings, match);
+      replacer(parentNode, siblings, match, false);
       return true;
     }
   }

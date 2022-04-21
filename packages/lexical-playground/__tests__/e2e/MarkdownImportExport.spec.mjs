@@ -15,7 +15,6 @@ import {
   initialize,
   pasteFromClipboard,
   test,
-  waitForSelector,
 } from '../utils/index.mjs';
 
 test.describe('Markdown import', () => {
@@ -26,14 +25,14 @@ test.describe('Markdown import', () => {
 
   test('can convert markdown text into rich text', async ({page, isCollab}) => {
     await focusEditor(page);
+    await page.keyboard.type('```markdown ');
     await pasteFromClipboard(page, {
       'text/plain': MARKDOWN,
     });
-    // Undo/redo is not tested in collab
-    const originalHTML = isCollab
-      ? null
-      : await page.innerHTML('div[contenteditable="true"]');
-    await waitForSelector(page, '.action-button .markdown');
+
+    const originalHTML = await page.innerHTML('div[contenteditable="true"]');
+
+    // Import from current markdown codeblock content
     await click(page, '.action-button .markdown');
     await assertHTML(page, TRANSFORMED_HTML);
 
@@ -43,6 +42,14 @@ test.describe('Markdown import', () => {
       await redo(page);
       await assertHTML(page, TRANSFORMED_HTML);
     }
+
+    // Click again to run export/import cycle twice to make sure
+    // no extra nodes (e.g. newlines) are created
+    await click(page, '.action-button .markdown');
+    await click(page, '.action-button .markdown');
+    await click(page, '.action-button .markdown');
+    await click(page, '.action-button .markdown');
+    await assertHTML(page, TRANSFORMED_HTML);
   });
 });
 
@@ -75,7 +82,7 @@ It ~~___works [with links](https://lexical.io)___~~ too
 ### Inline code
 Inline \`code\` format which also \`preserves **_~~any markdown-like~~_** text\` within
 ### Code blocks
-\`\`\`
+\`\`\`javascript
 // Some comments
 1 + 1 = 2;
 **_~~1~~_**
@@ -197,7 +204,6 @@ const TRANSFORMED_HTML = html`
     data-lexical-decorator="true">
     <hr />
   </div>
-  <p class="PlaygroundEditorTheme__paragraph"><br /></p>
   <h3 class="PlaygroundEditorTheme__h3 PlaygroundEditorTheme__ltr" dir="ltr">
     <span data-lexical-text="true">Blockquotes</span>
   </h3>

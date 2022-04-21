@@ -8,7 +8,7 @@
  */
 
 import type {BlockTransformer, TextTransformer} from './MarkdownPlugin';
-import type {ElementNode, TextFormatType, TextNode} from 'lexical';
+import type {ElementNode, LexicalNode, TextFormatType, TextNode} from 'lexical';
 
 import {$isLinkNode} from '@lexical/link';
 import {$getRoot, $isElementNode, $isLineBreakNode, $isTextNode} from 'lexical';
@@ -25,10 +25,13 @@ export function createMarkdownExporter(
     const children = $getRoot().getChildren();
 
     for (const child of children) {
-      if ($isElementNode(child)) {
-        output.push(
-          exportElement(child, blockTransformers, textTransformersIndex),
-        );
+      const result = exportTopLevelElementOrDecorator(
+        child,
+        blockTransformers,
+        textTransformersIndex,
+      );
+      if (result != null) {
+        output.push(result);
       }
     }
 
@@ -36,11 +39,11 @@ export function createMarkdownExporter(
   };
 }
 
-function exportElement(
-  node: ElementNode,
+function exportTopLevelElementOrDecorator(
+  node: LexicalNode,
   blockTransformers: Array<BlockTransformer>,
   textTransformersIndex: TextTransformersIndex,
-): string {
+): string | null {
   for (const transformer of blockTransformers) {
     const result = transformer[2](node, (_node) =>
       exportChildren(_node, textTransformersIndex),
@@ -49,7 +52,10 @@ function exportElement(
       return result;
     }
   }
-  return exportChildren(node, textTransformersIndex);
+
+  return $isElementNode(node)
+    ? exportChildren(node, textTransformersIndex)
+    : null;
 }
 
 function exportChildren(
@@ -63,7 +69,12 @@ function exportChildren(
       output.push('\n');
     } else if ($isTextNode(child)) {
       output.push(
-        exportTextNode(child, child.getTextContent(), textTransformersIndex),
+        exportTextNode(
+          child,
+          child.getTextContent(),
+          node,
+          textTransformersIndex,
+        ),
       );
     } else if ($isLinkNode(child)) {
       const linkContent = `[${child.getTextContent()}](${child.getURL()})`;
@@ -74,7 +85,7 @@ function exportChildren(
       // For now chosing the first option.
       if (child.getChildrenSize() === 1 && $isTextNode(firstChild)) {
         output.push(
-          exportTextNode(firstChild, linkContent, textTransformersIndex),
+          exportTextNode(firstChild, linkContent, child, textTransformersIndex),
         );
       } else {
         output.push(linkContent);
@@ -90,17 +101,74 @@ function exportChildren(
 function exportTextNode(
   node: TextNode,
   textContent: string,
+  parentNode: ElementNode,
   textTransformers: TextTransformersIndex,
 ): string {
   let output = textContent;
   const applied = new Set();
   for (const [format, tag] of textTransformers) {
-    if (node.hasFormat(format) && !applied.has(format)) {
+    if (hasFormat(node, format) && !applied.has(format)) {
+      // Multiple tags might be used for the same format (*, _)
       applied.add(format);
-      output = tag + output + tag;
+
+      // Prevent adding opening tag is already opened by the previous sibling
+      const previousNode = getTextSibling(node, true);
+      if (!hasFormat(previousNode, format)) {
+        output = tag + output;
+      }
+
+      // Prevent adding closing tag if next sibling will do it
+      const nextNode = getTextSibling(node, false);
+      if (!hasFormat(nextNode, format)) {
+        output += tag;
+      }
     }
   }
   return output;
+}
+
+// Get next or previous text sibling a text node, including cases
+// when it's a child of inline element (e.g. link)
+function getTextSibling(node: TextNode, backward: boolean): TextNode | null {
+  let sibling = backward ? node.getPreviousSibling() : node.getNextSibling();
+
+  if (!sibling) {
+    const parent = node.getParentOrThrow();
+    if (parent.isInline()) {
+      sibling = backward
+        ? parent.getPreviousSibling()
+        : parent.getNextSibling();
+    }
+  }
+
+  while (sibling) {
+    if ($isElementNode(sibling)) {
+      if (!sibling.isInline()) {
+        break;
+      }
+      const descendant = backward
+        ? sibling.getLastDescendant()
+        : sibling.getFirstDescendant();
+
+      if ($isTextNode(descendant)) {
+        return descendant;
+      } else {
+        sibling = backward
+          ? sibling.getPreviousSibling()
+          : sibling.getNextSibling();
+      }
+    }
+
+    if ($isTextNode(sibling)) {
+      return sibling;
+    }
+  }
+
+  return null;
+}
+
+function hasFormat(node: LexicalNode | null, format: TextFormatType): boolean {
+  return $isTextNode(node) && node.hasFormat(format);
 }
 
 function createTextTransformersIndex(
@@ -108,6 +176,8 @@ function createTextTransformersIndex(
 ): TextTransformersIndex {
   const index = [];
   for (const transformer of textTransformers) {
+    // Skip combination of formats (e.g. *** for bold/italic) and
+    // use individual tags instead
     if (transformer.format.length === 1) {
       index.push([transformer.format[0], transformer.tag]);
     }

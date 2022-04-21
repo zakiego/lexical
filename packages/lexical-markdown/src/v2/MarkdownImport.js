@@ -20,10 +20,20 @@ const LINK_REG_EXP = /(?:\[([^[]+)\])(?:\(([^(]+)\))/;
 
 type TextTransformersIndex = $ReadOnly<{
   byTag: $ReadOnly<{[string]: TextTransformer}>,
-  matchByTag: $ReadOnly<{[string]: RegExp}>,
+  fullMatchRegExpByTag: $ReadOnly<{[string]: RegExp}>,
   openTagsRegExp: RegExp,
 }>;
 
+/**
+ * Creates markdown importer method using block and text transformers
+ * configuration. Main steps in converting markdown into lexical nodes:
+ *
+ *  - convert lines into root level blocks
+ *  - process text content within those blocks by finding outermost markdown tags
+ *    and recursively parsing inner content (e.g. when ~~ nested within * tags)
+ *  - once formats are applied checking for links (since markdown links do not
+ *    support nested styles they can go last over leaf text content nodes)
+ */
 export function createMarkdownImporter(
   blockTransformers: Array<BlockTransformer>,
   textTransformers: Array<TextTransformer>,
@@ -77,7 +87,7 @@ function runBlockTransformers(
     const match = lineText.match(matcher);
     if (match) {
       textNode.setTextContent(lineText.slice(match[0].length));
-      replacer(elementNode, [textNode], match);
+      replacer(elementNode, [textNode], match, true);
       break;
     }
   }
@@ -85,6 +95,13 @@ function runBlockTransformers(
   runTextTransformers(textNode, textTransformersIndex);
 }
 
+// Processing text content and replaces markdown tags with node's formats.
+// It takes outermost match of tag and its content, creates text node with
+// format based on tag and then recursively executed over node's content
+//
+// E.g. for "*Hello **world**!*" string it will create text node with
+// "Hello **world**!" content and italic format and run recursive call over
+// its content to transform "**world**" part
 function runTextTransformers(
   textNode: TextNode,
   textTransformersIndex: TextTransformersIndex,
@@ -189,20 +206,21 @@ function runLinkTransformers(textNode_: TextNode) {
   }
 }
 
+// Finds first "<tag>content</tag>" match that is not nested into another tag
 function findOutermostMatch(
   textContent: string,
   textTransformersIndex: TextTransformersIndex,
 ): RegExp$matchResult | null {
-  const openTagMatch = textContent.match(textTransformersIndex.openTagsRegExp);
-  if (openTagMatch == null) {
+  const openTagsMatch = textContent.match(textTransformersIndex.openTagsRegExp);
+  if (openTagsMatch == null) {
     return null;
   }
 
-  for (const match of openTagMatch) {
+  for (const match of openTagsMatch) {
     // Open tags reg exp might capture leading space so removing it
     // before using match to find transformer
     const fullMatchRegExp =
-      textTransformersIndex.matchByTag[match.replace(/^\s/, '')];
+      textTransformersIndex.fullMatchRegExpByTag[match.replace(/^\s/, '')];
     if (fullMatchRegExp == null) {
       continue;
     }
@@ -220,7 +238,7 @@ function createTextTransformersIndex(
   textTransformers: Array<TextTransformer>,
 ): TextTransformersIndex {
   const byTag = {};
-  const matchByTag = {};
+  const fullMatchRegExpByTag = {};
   const openTagsRegExp = [];
   for (const transformer of textTransformers) {
     const {tag} = transformer;
@@ -228,14 +246,14 @@ function createTextTransformersIndex(
     const tagRegExp = tag.replace(/\*/g, '\\*');
     openTagsRegExp.push(tagRegExp);
     // RegExp to match specific tag group (open tag + content + close tag)
-    matchByTag[tag] = new RegExp(
+    fullMatchRegExpByTag[tag] = new RegExp(
       `(${tagRegExp})(?![${tagRegExp}\\s])(.*?[^${tagRegExp}\\s])${tagRegExp}(?!${tagRegExp})`,
     );
   }
 
   return {
     byTag,
-    matchByTag,
+    fullMatchRegExpByTag,
     // RegExp to match all possible open tags
     openTagsRegExp: new RegExp('(' + openTagsRegExp.join('|') + ')', 'g'),
   };
