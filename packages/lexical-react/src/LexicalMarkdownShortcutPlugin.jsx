@@ -11,7 +11,7 @@ import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 
 import useMarkdownShortcuts from './shared/useMarkdownShortcuts';
 
-export default function LexicalMarkdownShortcutPlugin(): React$Node {
+export default function LexicalMarkdownShortcutPlugin(): null {
   const [editor] = useLexicalComposerContext();
   useMarkdownShortcuts(editor);
 
