@@ -59,6 +59,7 @@ export type EditorSetOptions = {|
 export type EditorThemeClasses = {
   code?: EditorThemeClassName,
   codeHighlight?: {[string]: EditorThemeClassName},
+  codeLine?: EditorThemeClassName,
   hashtag?: EditorThemeClassName,
   heading?: {
     h1?: EditorThemeClassName,

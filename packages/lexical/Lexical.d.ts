@@ -205,6 +205,7 @@ export type EditorThemeClasses = {
   quote?: EditorThemeClassName;
   code?: EditorThemeClassName;
   codeHighlight?: Record<string, EditorThemeClassName>;
+  codeLine?: EditorThemeClassName;
   hashtag?: EditorThemeClassName;
   heading?: {
     h1?: EditorThemeClassName;
