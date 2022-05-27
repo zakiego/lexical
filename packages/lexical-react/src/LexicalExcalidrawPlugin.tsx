@@ -6,6 +6,7 @@
  *
  */
 import type {LexicalCommand} from 'lexical';
+import type {Modal, Excalidraw} from '@lexical/excalidraw';
 
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 import {
@@ -16,10 +17,10 @@ import {
 } from 'lexical';
 import {useEffect} from 'react';
 
-import {$createExcalidrawNode, ExcalidrawNode} from '../nodes/ExcalidrawNode';
+import {$createExcalidrawNode, ExcalidrawNode, ExcalidrawImage} from '@lexical/excalidraw';
 
 export const INSERT_EXCALIDRAW_COMMAND: LexicalCommand<void> = createCommand();
-export default function ExcalidrawPlugin(): JSX.Element {
+export function ExcalidrawPlugin({modal, excalidraw, excalidrawImage}: {modal: Modal, excalidraw: Excalidraw, excalidrawImage: ExcalidrawImage}): JSX.Element {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
     if (!editor.hasNodes([ExcalidrawNode])) {
@@ -34,7 +35,7 @@ export default function ExcalidrawPlugin(): JSX.Element {
         const selection = $getSelection();
 
         if ($isRangeSelection(selection)) {
-          const excalidrawNode = $createExcalidrawNode();
+          const excalidrawNode = $createExcalidrawNode(excalidraw, excalidrawImage, modal);
           selection.insertNodes([excalidrawNode]);
         }
 
@@ -46,3 +47,5 @@ export default function ExcalidrawPlugin(): JSX.Element {
 
   return null;
 }
+
+export {ExcalidrawNode};

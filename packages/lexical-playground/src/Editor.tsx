@@ -21,6 +21,7 @@ import {ListPlugin} from '@lexical/react/LexicalListPlugin';
 import {PlainTextPlugin} from '@lexical/react/LexicalPlainTextPlugin';
 import {RichTextPlugin} from '@lexical/react/LexicalRichTextPlugin';
 import {TablePlugin} from '@lexical/react/LexicalTablePlugin';
+import {ExcalidrawPlugin} from '@lexical/react/LexicalExcalidrawPlugin';
 import {$createHeadingNode, $createQuoteNode} from '@lexical/rich-text';
 import {$createParagraphNode, $createTextNode, $getRoot} from 'lexical';
 import * as React from 'react';
@@ -38,7 +39,6 @@ import CodeHighlightPlugin from './plugins/CodeHighlightPlugin';
 import CommentPlugin from './plugins/CommentPlugin';
 import EmojisPlugin from './plugins/EmojisPlugin';
 import EquationsPlugin from './plugins/EquationsPlugin';
-import ExcalidrawPlugin from './plugins/ExcalidrawPlugin';
 import HorizontalRulePlugin from './plugins/HorizontalRulePlugin';
 import ImagesPlugin from './plugins/ImagesPlugin';
 import KeywordsPlugin from './plugins/KeywordsPlugin';
@@ -57,10 +57,20 @@ import TwitterPlugin from './plugins/TwitterPlugin';
 import YouTubePlugin from './plugins/YouTubePlugin';
 import ContentEditable from './ui/ContentEditable';
 import Placeholder from './ui/Placeholder';
+import Modal from './ui/Modal';
+import Excalidraw from '@excalidraw/excalidraw';
+import ExcalidrawImage from './ui/ExcalidrawImage';
 
 const skipCollaborationInit =
   // @ts-ignore
   window.parent != null && window.parent.frames.right === window;
+
+
+// This is a hacky work-around for Excalidraw + Vite.
+// In DEV, Vite pulls this in fine, in prod it doesn't. It seems
+// like a module resolution issue with ESM vs CJS?
+const _Excalidraw =
+  Excalidraw.$$typeof != null ? Excalidraw : Excalidraw.default;
 
 function prepopulatedRichText() {
   const root = $getRoot();
@@ -218,7 +228,7 @@ export default function Editor(): JSX.Element {
             <HorizontalRulePlugin />
             <CharacterStylesPopupPlugin />
             <EquationsPlugin />
-            <ExcalidrawPlugin />
+            <ExcalidrawPlugin excalidrawImage={ExcalidrawImage} modal={Modal} excalidraw={_Excalidraw} />
             <TabFocusPlugin />
           </>
         ) : (

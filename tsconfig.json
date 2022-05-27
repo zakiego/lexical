@@ -38,6 +38,7 @@
       "@lexical/overflow": ["./packages/lexical-overflow/LexicalOverflow.d.ts"],
       "@lexical/markdown": ["./packages/lexical-markdown/LexicalMarkdown.d.ts"],
       "@lexical/mark": ["./packages/lexical-mark/LexicalMark.d.ts"],
+      "@lexical/excalidraw": ["./packages/lexical-excalidraw/LexicalExcalidraw.d.ts"],
 
       "@lexical/react/DEPRECATED_useLexicalEditor": [
         "./packages/lexical-react/src/DEPRECATED_useLexicalEditor.ts"
@@ -155,6 +156,7 @@
       "@lexical/react/LexicalAutoScrollPlugin": [
         "./packages/lexical-react/LexicalAutoScrollPlugin.d.ts"
       ],
+      "@lexical/react/LexicalExcalidrawPlugin": ["packages/lexical-react/LexicalExcalidraw.d.ts"],
 
       "@lexical/dragon/LexicalDragon": [
         "./packages/lexical-dragon/LexicalDragon.d.ts"

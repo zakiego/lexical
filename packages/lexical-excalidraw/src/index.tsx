@@ -14,6 +14,14 @@ import type {
   NodeKey,
   SerializedLexicalNode,
 } from 'lexical';
+import type {EditorConfig, LexicalEditor, LexicalNode, NodeKey} from 'lexical';
+import type {Modal} from './ExcalidrawModal';
+import type {Excalidraw} from './ExcalidrawModal';
+import {
+  ExcalidrawElement,
+  NonDeleted,
+} from '@excalidraw/excalidraw/types/element/types';
+import {AppState} from '@excalidraw/excalidraw/types/types';
 
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 import {useLexicalNodeSelection} from '@lexical/react/useLexicalNodeSelection';
@@ -31,22 +39,68 @@ import {
 import * as React from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import ImageResizer from '../../ui/ImageResizer';
-import ExcalidrawImage from './ExcalidrawImage';
 import ExcalidrawModal from './ExcalidrawModal';
 
+type ImageType = 'svg' | 'canvas';
+
+type ExcalidrawImageProps = {
+  /**
+   * Configures the export setting for SVG/Canvas
+   */
+  appState?: Partial<Omit<AppState, 'offsetTop' | 'offsetLeft'>> | null;
+  /**
+   * The css class applied to image to be rendered
+   */
+  className?: string;
+  /**
+   * The Excalidraw elements to be rendered as an image
+   */
+  elements: NonDeleted<ExcalidrawElement>[];
+  /**
+   * The height of the image to be rendered
+   */
+  height?: number | null;
+  /**
+   * The type of image to be rendered
+   */
+  imageType?: ImageType;
+  /**
+   * The css class applied to the root element of this component
+   */
+  rootClassName?: string | null;
+  /**
+   * The width of the image to be rendered
+   */
+  width?: number | null;
+
+  buttonRef: {current: null | HTMLButtonElement};
+  isSelected: boolean;
+  isResizing: boolean;
+  onResizeStart: () => void;
+  onResizeEnd: () => void;
+  editor: LexicalEditor;
+};
+
+export type ExcalidrawImage = (props: ExcalidrawImageProps) => JSX.Element;
+
+
 function ExcalidrawComponent({
+  excalidraw,
+  ExcalidrawImage,
+  modal,
   nodeKey,
   data,
 }: {
   data: string;
   nodeKey: NodeKey;
+  modal: Modal;
+  excalidraw: Excalidraw;
+  ExcalidrawImage: ExcalidrawImage;
 }): JSX.Element {
   const [editor] = useLexicalComposerContext();
   const [isModalOpen, setModalOpen] = useState<boolean>(
     data === '[]' && !editor.isReadOnly(),
   );
-  const imageContainerRef = useRef<HTMLImageElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [isSelected, setSelected, clearSelection] =
     useLexicalNodeSelection(nodeKey);
@@ -149,7 +203,7 @@ function ExcalidrawComponent({
     setIsResizing(true);
   };
 
-  const onResizeEnd = (nextWidth, nextHeight) => {
+  const onResizeEnd = () => {
     // Delay hiding the resize bars for click case
     setTimeout(() => {
       setIsResizing(false);
@@ -160,6 +214,8 @@ function ExcalidrawComponent({
   return (
     <>
       <ExcalidrawModal
+        Modal={modal}
+        Excalidraw={excalidraw}
         initialElements={elements}
         isShown={isModalOpen}
         onDelete={deleteNode}
@@ -175,25 +231,15 @@ function ExcalidrawComponent({
         closeOnClickOutside={true}
       />
       {elements.length > 0 && (
-        <button
-          ref={buttonRef}
-          className={`excalidraw-button ${isSelected ? 'selected' : ''}`}>
-          <ExcalidrawImage
-            imageContainerRef={imageContainerRef}
-            className="image"
-            elements={elements}
-          />
-          {(isSelected || isResizing) && (
-            <ImageResizer
-              showCaption={true}
-              setShowCaption={() => null}
-              imageRef={imageContainerRef}
-              editor={editor}
-              onResizeStart={onResizeStart}
-              onResizeEnd={onResizeEnd}
-            />
-          )}
-        </button>
+        <ExcalidrawImage
+          elements={elements}
+          buttonRef={buttonRef}
+          isSelected={isSelected}
+          onResizeEnd={onResizeEnd}
+          onResizeStart={onResizeStart}
+          isResizing={isResizing}
+          editor={editor}
+        />
       )}
     </>
   );
@@ -210,18 +256,21 @@ export type SerializedExcalidrawNode = Spread<
 
 export class ExcalidrawNode extends DecoratorNode<JSX.Element> {
   __data: string;
+  __modal: Modal;
+  __excalidraw: Excalidraw;
+  __excalidrawImage: ExcalidrawImage;
 
   static getType(): string {
     return 'excalidraw';
   }
 
   static clone(node: ExcalidrawNode): ExcalidrawNode {
-    return new ExcalidrawNode(node.__data, node.__key);
+    return new ExcalidrawNode(node.__excalidraw, node.__excalidrawImage, node.__modal, node.__data, node.__key);
   }
 
-  static importJSON(serializedNode: SerializedExcalidrawNode): ExcalidrawNode {
-    return new ExcalidrawNode(serializedNode.data);
-  }
+  // static importJSON(serializedNode: SerializedExcalidrawNode): ExcalidrawNode {
+  //   return new ExcalidrawNode(serializedNode.data);
+  // }
 
   exportJSON(): SerializedExcalidrawNode {
     return {
@@ -231,9 +280,12 @@ export class ExcalidrawNode extends DecoratorNode<JSX.Element> {
     };
   }
 
-  constructor(data = '[]', key?: NodeKey) {
+  constructor(excalidrawComponent, excalidrawImageComponent, modalComponent, data = '[]', key?: NodeKey) {
     super(key);
     this.__data = data;
+    this.__modal = modalComponent;
+    this.__excalidraw = excalidrawComponent;
+    this.__excalidrawImage = excalidrawImageComponent;
   }
 
   // View
@@ -257,12 +309,12 @@ export class ExcalidrawNode extends DecoratorNode<JSX.Element> {
   }
 
   decorate(editor: LexicalEditor): JSX.Element {
-    return <ExcalidrawComponent nodeKey={this.getKey()} data={this.__data} />;
+    return <ExcalidrawComponent ExcalidrawImage={this.__excalidrawImage} excalidraw={this.__excalidraw} modal={this.__modal} nodeKey={this.getKey()} data={this.__data} />;
   }
 }
 
-export function $createExcalidrawNode(): ExcalidrawNode {
-  return new ExcalidrawNode();
+export function $createExcalidrawNode(excalidrawComponent: Excalidraw, excalidrawImageComponent: ExcalidrawImage,  modalComponent: Modal): ExcalidrawNode {
+  return new ExcalidrawNode(excalidrawComponent, excalidrawImageComponent, modalComponent);
 }
 
 export function $isExcalidrawNode(
