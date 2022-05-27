@@ -14,7 +14,6 @@ import type {
   NodeKey,
   SerializedLexicalNode,
 } from 'lexical';
-import type {EditorConfig, LexicalEditor, LexicalNode, NodeKey} from 'lexical';
 import type {Modal} from './ExcalidrawModal';
 import type {Excalidraw} from './ExcalidrawModal';
 import {
