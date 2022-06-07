@@ -905,6 +905,8 @@ function onDocumentSelectionChange(event: Event): void {
   }
 }
 
+export type EventHandler = (event: Event, editor: LexicalEditor) => void;
+
 export function addRootElementEvents(
   rootElement: HTMLElement,
   editor: LexicalEditor,
