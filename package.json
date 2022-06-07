@@ -121,6 +121,7 @@
     "eslint-plugin-simple-import-sort": "^7.0.0",
     "eslint-plugin-sort-keys-fix": "^1.1.2",
     "flow-bin": "^0.171.0",
+    "flowgen": "^1.20.0",
     "fs-extra": "^10.0.0",
     "gen-flow-files": "^0.4.11",
     "glob": "^7.2.0",

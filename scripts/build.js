@@ -577,6 +577,12 @@ async function buildTSDeclarationFiles(packageName, outputPath) {
   await exec('tsc -p ./tsconfig.build.json');
 }
 
+async function buildFlowDeclarationFiles(packageName, outputPath) {
+  await exec(
+    'find ./.ts-temp -type f -name "*.d.ts" -exec sh -c "flowgen --add-flow-header $1 -o ./.flow-temp/${1%.*.*}.js.flow" _ "{}" \\;',
+  );
+}
+
 async function moveTSDeclarationFilesIntoDist(packageName, outputPath) {
   await exec(`cp -R ./.ts-temp/${packageName}/src/ ${outputPath}`);
 }
