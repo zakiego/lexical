@@ -19,7 +19,7 @@ const options = {};
 // 'LexicalFoo'. Lastly, it creates these files in the 'dist' directory
 // for each package so they can easily be copied to www.
 
-glob('packages/**/flow/*.flow', options, function (error1, files) {
+glob('.flow.temp/**/lexical/**/*.flow', options, function (error1, files) {
   if (error1) {
     throw error1;
   }

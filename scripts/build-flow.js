@@ -8,13 +8,10 @@
 'use strict';
 
 const {exec} = require('child-process-promise');
-const path = require('path');
 
 async function buildFlowDeclarationFiles(packageName, outputPath) {
   await exec(
-    `find ${path.resolve(
-      '.ts-temp/',
-    )} -type f -name "**/*.d.ts" -exec sh -c "flowgen --add-flow-header $1 -o ./.flow-temp/\${1%.*.*\}.js.flow" _ "{}" \\;`,
+    "find ./.ts-temp -type f -name '*.d.ts' -exec sh -c 'yarn flowgen --no-inexact --add-flow-header $1 -o ./.ts-flow/${1%.*.*}.js.flow' _ '{}' \\;",
     (err) => {
       console.error(err);
     },
