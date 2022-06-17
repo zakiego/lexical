@@ -99,7 +99,7 @@ export function $getAllListItems(node: ListNode): Array<ListItemNode> {
 
 export function isNestedListNode(
   node: LexicalNode | null | undefined,
-): boolean {
+): node is ListItemNode | ListNode {
   return $isListItemNode(node) && $isListNode(node.getFirstChild());
 }
 

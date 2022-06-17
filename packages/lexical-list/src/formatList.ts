@@ -252,7 +252,7 @@ export function updateChildrenListItemValue(
   list: ListNode,
   children?: Array<LexicalNode>,
 ): void {
-  (children || list.getChildren()).forEach((child: ListItemNode) => {
+  (children || list.getChildren<ListItemNode>()).forEach((child) => {
     const prevValue = child.getValue();
     const nextValue = $getListItemValue(child);
 

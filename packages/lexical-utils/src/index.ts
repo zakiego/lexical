@@ -106,15 +106,17 @@ function $getDepth(node: LexicalNode): number {
 export function $getNearestNodeOfType<T extends ElementNode>(
   node: LexicalNode,
   klass: Klass<T>,
-): T | LexicalNode {
-  let parent: T | LexicalNode = node;
+): ElementNode {
+  let parent = node;
 
   while (parent != null) {
     if (parent instanceof klass) {
       return parent;
     }
-
-    parent = parent.getParent();
+    const grandParent = parent.getParent();
+    if (grandParent) {
+      parent = grandParent;
+    }
   }
 
   return parent;

@@ -53,7 +53,7 @@ export type SerializedListItemNode = Spread<
 >;
 export class ListItemNode extends ElementNode {
   __value: number;
-  __checked: boolean;
+  __checked: boolean | undefined;
 
   static getType(): string {
     return 'listitem';

@@ -61,6 +61,7 @@ module.exports = {
       files: ['**/*.ts', '**/*.tsx'],
       parser: '@typescript-eslint/parser',
       parserOptions: {
+        project: './tsconfig.build.json',
         sourceType: 'module',
       },
       plugins: ['react', '@typescript-eslint', 'header'],

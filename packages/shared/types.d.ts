@@ -8,4 +8,4 @@
 
 import {LexicalNode} from 'lexical';
 
-export type Klass<T extends LexicalNode> = new (...args: unknown[]) => T;
+export type Klass<T extends LexicalNode> = new (...args: any[]) => T;

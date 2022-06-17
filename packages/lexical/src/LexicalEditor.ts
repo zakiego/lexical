@@ -125,10 +125,12 @@ export type RegisteredNodes = Map<string, RegisteredNode>;
 
 export type RegisteredNode = {
   klass: Klass<LexicalNode>;
-  transforms: Set<Transform<LexicalNode>>;
+  transforms: Set<Transform<typeof LexicalNode>>;
 };
 
-export type Transform<T> = (node: T) => void;
+export type Transform<T extends typeof LexicalNode> = (
+  node: InstanceType<T>,
+) => void;
 
 export type ErrorHandler = (error: Error) => void;
 
@@ -582,10 +584,9 @@ export class LexicalEditor {
   }
 
   registerMutationListener(
-    klass: Klass<LexicalNode>,
+    klass: typeof LexicalNode,
     listener: MutationListener,
   ): () => void {
-    // @ts-expect-error TODO Replace Class utility type with InstanceType
     const registeredNode = this._nodes.get(klass.getType());
 
     if (registeredNode === undefined) {
@@ -603,11 +604,10 @@ export class LexicalEditor {
     };
   }
 
-  registerNodeTransform<T extends LexicalNode>(
-    klass: Klass<T>,
-    listener: Transform<T>,
+  registerNodeTransform<T extends typeof LexicalNode>(
+    klass: T,
+    listener: (node: InstanceType<T>) => void,
   ): () => void {
-    // @ts-expect-error TODO Replace Class utility type with InstanceType
     const type = klass.getType();
 
     const registeredNode = this._nodes.get(type);
@@ -628,10 +628,9 @@ export class LexicalEditor {
     };
   }
 
-  hasNodes<T extends Klass<LexicalNode>>(nodes: Array<T>): boolean {
+  hasNodes<T extends typeof LexicalNode>(nodes: Array<T>): boolean {
     for (let i = 0; i < nodes.length; i++) {
       const klass = nodes[i];
-      // @ts-expect-error
       const type = klass.getType();
 
       if (!this._nodes.has(type)) {
